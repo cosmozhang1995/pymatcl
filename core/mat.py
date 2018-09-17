@@ -1,9 +1,9 @@
 import pyopencl as cl
 import numpy as np
 import os
-from .essentials import rawprogram, ctx, queue
+from .essentials import ctx, queue
 from .gtypes import gtype, is_gtype_valid
-from .gtypes import _modgpu_supported_gtypes
+from .programming import program_with_basetypes
 from .base_operator import \
     base_operator_add,\
     base_operator_sub,\
@@ -25,21 +25,10 @@ _dtype_mapping = ((np.float64, np.float32), (np.int64, np.int32))
 _dtype_mapping = tuple(map(lambda x: tuple(map(lambda y: np.dtype(y), x)), _dtype_mapping))
 _dtype_disabled = tuple(map(lambda x: x[0], _dtype_mapping))
 
-def program_with_basetypes(filename):
-    kernels = {}
-    for _sptgtype in _modgpu_supported_gtypes:
-        typename = _sptgtype.name
-        gputype = _sptgtype.gputype
-        dtype = _sptgtype.dtype
-        prg = rawprogram(os.path.join(_script_dir, filename), {"basetype": gputype})
-        kernel = prg.matmul
-        kernels[typename] = kernel
-    return kernels
-
-_kernel_matmul = program_with_basetypes("matmul.cl")
+_kernel_matmul = program_with_basetypes(os.path.join(_script_dir, "matmul.cl"))
 for k in _kernel_matmul:
     _kernel_matmul[k].set_scalar_arg_dtypes([np.int32, None, None, None])
-_kernel_transpose = program_with_basetypes("transpose.cl")
+_kernel_transpose = program_with_basetypes(os.path.join(_script_dir, "transpose.cl"))
 
 
 class Mat:
@@ -135,6 +124,19 @@ class Mat:
         hostbuf = np.empty(self._shape, dtype=self._gtype.dtype)
         cl.enqueue_copy(queue, hostbuf, self._buffer)
         return hostbuf
+
+    def fill(self, value):
+        if not isinstance(value, np.ndarray):
+            value = np.array(value)
+        if len(value.shape) == 0:
+            value = value.astype(self.gtype.dtype)
+            cl.enqueue_fill_buffer(queue, self.buffer, value, 0, self.gtype.elemsize * prod(self.shape))
+        elif value.dtype != self.gtype.dtype:
+            raise ValueError("Matrix fill error: the given host buffer is not in the same data type with the matrix")
+        elif value.shape != self.shape:
+            raise ValueError("Matrix fill error: the given host buffer is not in the same shape with the matrix")
+        else:
+            cl.enqueue_copy(queue, self.buffer, value)
 
     def _check_other_and_take_op(base_op, va, vb, vo=None):
         ismat_a = isinstance(va, Mat)

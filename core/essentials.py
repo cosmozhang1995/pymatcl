@@ -1,7 +1,7 @@
 import pyopencl as cl
 import re
 
-ctx = cl.create_some_context(interactive=False)
+ctx = cl.create_some_context(interactive=True)
 queue = cl.CommandQueue(ctx)
 
 class Kernel:
