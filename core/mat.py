@@ -47,6 +47,10 @@ class Mat:
     @property
     def ndims(self):
         return len(self._shape)
+    @property
+    def datasize(self):
+        return self.gtype.elemsize * prod(self.shape)
+    
     
     
     
@@ -60,7 +64,7 @@ class Mat:
                 # clone constructor
                 self._shape = init.shape
                 self._gtype = init.gtype
-                self._buffer = cl.Buffer(ctx, cl.mem_flags.READ_WRITE, size = prod(self.shape) * self.gtype.elemsize)
+                self._buffer = cl.Buffer(ctx, cl.mem_flags.READ_WRITE, size = self.datasize)
                 cl.enqueue_copy(queue, self._buffer, init.buffer)
             else:
                 # construct with host buffer or/and specified shape and datatype

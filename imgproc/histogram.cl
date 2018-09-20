@@ -10,6 +10,9 @@ __kernel void histogram(int size, __global basetype *gin, __global int *gtemp)
     int lsize = lsize0 * lsize1;
     int lid = get_local_id(0) * lsize1 + get_local_id(1);
 
+    // local memory
+    
+
     // Compute histogram for each `steps` piece
     int piecestart = gid * steps;
     int pieceend = piecestart + steps;
@@ -21,12 +24,14 @@ __kernel void histogram(int size, __global basetype *gin, __global int *gtemp)
         }
     }
 
+    barrier(CLK_GLOBAL_MEM_FENCE);
+
     // Reduce to calculate the final temp
     int idx1 = gid * lsize + lid;
     int p = 0;
     int gap = 1;
     while () {
         int idx2 = idx + gap;
-        
+
     }
 }

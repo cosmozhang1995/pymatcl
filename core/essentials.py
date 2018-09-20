@@ -1,7 +1,8 @@
 import pyopencl as cl
 import re
 
-ctx = cl.create_some_context(interactive=True)
+context = cl.create_some_context(interactive=True)
+ctx = context
 queue = cl.CommandQueue(ctx)
 
 class Kernel:
@@ -20,14 +21,17 @@ class Program:
             clkernel = getattr(clprogram, kname)
             setattr(self, kname, Kernel(clkernel))
 
-def rawprogram(filename, replacements={}):
-    fp = open(filename, 'r')
-    filecontent = fp.read()
-    fp.close()
+def rawprogram(filename=None, source=None, replacements={}):
+    if source is None:
+        fp = open(filename, 'r')
+        filecontent = fp.read()
+        fp.close()
+    else:
+        filecontent = source
     for pat in replacements:
         filecontent = re.sub(re.compile("\\b" + pat + "\\b"), replacements[pat], filecontent)
     prg = cl.Program(ctx, filecontent).build()
     return prg
 
-def program(filename, replacements={}):
-    return Program(rawprogram(filename, replacements=replacements))
+def program(filename=None, source=None, replacements={}):
+    return Program(rawprogram(filename=filename, source=source, replacements=replacements))
